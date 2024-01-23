@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 R6  = "R6_2024_01_04_05_47_05_patrouille_TAC_dechetterie_clean"
 R11 = "R11_2024_01_04_07_58_48_parc_check_clean"
 
-def read_data_files(data_dir="R6"):
+def read_data_files(data_dir):
     all_positions = []
     base_dir = "data/"
     for dir in os.listdir(base_dir):
@@ -24,7 +24,7 @@ def read_data_files(data_dir="R6"):
     return all_positions
 
 # Plot positions in 3D
-positions = read_data_files()
+positions = read_data_files("R6")
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 for pos in positions:

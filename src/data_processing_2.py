@@ -9,7 +9,8 @@ R6  = "R6"
 R11 = "R11"
 
 def read_data_files(data_dir="R6"):
-    '''Function that reads the csv files and converts them to a df with the pose and time columns'''
+    '''Function that reads the csv files and converts them
+       to a df with the pose and time columns'''
     all_sensors = []
     base_dir = "data/"
     for dir in os.listdir(base_dir):
@@ -34,8 +35,10 @@ print(df_list[1].head(5))
 std = df_list[1].std()
 std["pose.pose.position.x"]
 
-num = df_list[1].to_numpy()
-
-
-df_list[1].apply(args=[df_list[1], std["pose.pose.position.x"]])
+#First sensor
+df1 = df_list[1]
+std = df1.std() #Calculate the standar deviation of each column
+difference = df1.diff() #Substraction
+comp = difference.gt(std) #Compare the value
+print(comp)
      

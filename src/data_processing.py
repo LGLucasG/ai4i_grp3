@@ -78,19 +78,21 @@ def max_length(data):
 
 file_max_length_, max_length_ = max_length(data_)
 
-timestamp_length_ = 10
+TIMESTAMP_LENGTH = 10
 
 def interpolate_data(data_):
     interpolated_data = deepcopy(data_)
     for file in data_.keys():
-        timestamps = deepcopy([line[TIMESTAMP_S]*10 + line[TIMESTAMP_NS] for line in data_[file]])
-        new_timestamps = deepcopy([line[TIMESTAMP_S]*10 + line[TIMESTAMP_NS] for line in data_[file_max_length_]])
-        values = deepcopy([line[X_POS] for line in data_[file]])
-        interpolated_data_file = [[line[TIMESTAMP_S] for line in data_[file_max_length_]], [line[TIMESTAMP_NS] for line in data_[file_max_length_]]]
-        for i in range(X_POS, Z_LINEAR_ACC + 1):
-            interp = np.interp(new_timestamps, timestamps, [line[i] for line in data_[file]])
-            interpolated_data_file.append(interp)
-        interpolated_data[file] = np.array(interpolated_data_file).T
+        if len(data_[file]) == max_length_:
+            interpolated_data_file.append(data_[file])
+        else:
+            timestamps = deepcopy([line[TIMESTAMP_S] + line[TIMESTAMP_NS]*0.1**(len(str(line[TIMESTAMP_NS]))) for line in data_[file]])
+            new_timestamps = deepcopy([line[TIMESTAMP_S] + line[TIMESTAMP_NS]*0.1**(len(str(line[TIMESTAMP_NS]))) for line in data_[file_max_length_]])
+            interpolated_data_file = [[line[TIMESTAMP_S] for line in data_[file_max_length_]], [line[TIMESTAMP_NS] for line in data_[file_max_length_]]]
+            for i in range(X_POS, Z_LINEAR_ACC + 1):
+                interp = np.interp(new_timestamps, timestamps, [line[i] for line in data_[file]])
+                interpolated_data_file.append(interp)
+            interpolated_data[file] = np.array(interpolated_data_file).T
     return interpolated_data
 
 interpolated_data_ = interpolate_data(data_)
@@ -110,3 +112,5 @@ def check_interpolation(data_):
     return
 
 check_interpolation(interpolated_data_)
+
+plot_data(interpolated_data_)

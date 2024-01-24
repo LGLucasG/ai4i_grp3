@@ -13,7 +13,7 @@ DATA_DIRECTORY = "R6"  ## "R6" or "R11"
 
 #### DO NOT MODIFY IF YOU ARE NOT SURE ABOUT WHAT YOU ARE DOING ####
 # List of files
-LIST_FILES = ['CERBERE_steering_controller-odom.csv','IMU7-data.csv','odom-hdl.csv','odometry-ekf_se_odom.csv','odometry-filtered_map.csv','odometry-gps.csv']  #  WE DONT CARE ABOUT ublox_node-fix.csv
+LIST_FILES = ['cerbere_steering_controller-odom.csv','imu7-data.csv','odom-hdl.csv','odometry-ekf_se_odom.csv','odometry-filtered_map.csv','odometry-gps.csv']  #  WE DONT CARE ABOUT ublox_node-fix.csv
 # enum the list of files
 CERBERE, IMU7, ODOM_HDL, ODOMETRY_EKF, ODOMETRY_FILTERED, ODOMETRY_GPS = list(LIST_FILES)
 # enum the args of the list of files
@@ -27,7 +27,7 @@ def read_data_files(data_dir):
             if dir.startswith(data_dir):
                 path = os.path.join(base_dir, dir)
                 for filename in os.listdir(path):
-                    if filename.endswith(".csv"):
+                    if filename.endswith(".csv") and filename in LIST_FILES:
                         filepath = os.path.join(path, filename)
                         with open(filepath, "r") as file:
                             reader = csv.DictReader(file)
@@ -109,32 +109,34 @@ def check_interpolation(data):
             print("OK")
     return
 
+def filter_data(data):
+    filtered_data = deepcopy(data)
+    std_derivative, mean = {}, {}
+    for file in data.keys():
+        to_delete =[]
+        for i in range(ANGULAR_VELOCITY_X, LINEAR_ACC_Z + 1):
+            mean[file], std_derivative[file] = mean_standard_deviation(data, file)
+            for j in range(1, len(data[file])):
+                if (data[file][j][i] > (mean[file][i] + std_derivative[file][i])) or (data[file][j][i] < (mean[file][i] - std_derivative[file][i])):
+                    to_delete.append(j)
+        filtered_data[file] = np.delete(filtered_data[file], to_delete, 0)
+    return filtered_data
+
+def check_filtering(data):
+    print("Checking filtering ...")
+    for file in filtered_data_.keys():
+        print("filename :", file, "filelen :", len(filtered_data_[file]))
+    print("OK")
+    return
+
 if __name__ == "__main__":
     data_ = read_data_files(DATA_DIRECTORY)
     interpolated_data_ = interpolate_data(data_)
-
     check_interpolation(interpolated_data_)
-
     # plot_data(data_)
     # plot_data(interpolated_data_)
-    filtered_data = deepcopy(interpolated_data_)
-    std_derivative, mean = {}, {}
-    for file in interpolated_data_.keys():
-        mean[file], std_derivative[file] = mean_standard_deviation(interpolated_data_, file)
-        for i in range(ANGULAR_VELOCITY_X, LINEAR_ACC_Z + 1):
-            inside, outside = 0, 0
-            for j in range(1, len(interpolated_data_[file])):
-                if (interpolated_data_[file][j][i] > (mean[file][i] + std_derivative[file][i])) or (interpolated_data_[file][j][i] < (mean[file][i] - std_derivative[file][i])):
-                    try :
-                        filtered_data[file] = np.delete(filtered_data[file], j - outside, 0)
-                        outside +=1
-                    except IndexError as E:
-                        print("------------------------------------------------------------------")
-                        print("IndexError", file, j, outside, len(filtered_data[file]))
-                        print(E)
-                else:
-                    inside+=1
-                    # print("Filtered", file, "line", j, "column", i)
-            print(file, " --- column ", i, " --- inside ", inside, " --- outside ", outside)
-    plot_data(interpolated_data_)
-    plot_data(filtered_data)
+    filtered_data_ = filter_data(interpolated_data_)
+    for file in filtered_data_.keys():
+        print(file, len(filtered_data_[file]))
+    # plot_data(interpolated_data_)
+    plot_data(filtered_data_)

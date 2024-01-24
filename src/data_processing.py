@@ -18,6 +18,7 @@ LIST_FILES = ['CERBERE_steering_controller-odom.csv','IMU7-data.csv','odom-hdl.c
 CERBERE, IMU7, ODOM_HDL, ODOMETRY_EKF, ODOMETRY_FILTERED, ODOMETRY_GPS = list(LIST_FILES)
 # enum the args of the list of files
 TIMESTAMP_S, TIMESTAMP_NS, POS_X, POS_Y, POS_Z, ANGULAR_VELOCITY_X, ANGULAR_VELOCITY_Y, ANGULAR_VELOCITY_Z, LINEAR_ACC_X, LINEAR_ACC_Y, LINEAR_ACC_Z = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+TIMESTAMP_LENGTH = 10
 ####################################################################
 
 def read_data_files(data_dir):
@@ -56,10 +57,7 @@ def plot_data(data):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
-
-data_ = read_data_files(DATA_DIRECTORY)
-
-# plot_data(data_)
+    return
 
 #Calculate the standar deviation of each column
 def standar_deviation(data, filename):
@@ -67,7 +65,7 @@ def standar_deviation(data, filename):
     return std
 
 # for each file in data, calculate the length and take the max length
-def max_length(data):
+def compute_max_length(data):
     max_len = 0
     file_max_len = ""
     for file in data.keys():
@@ -76,42 +74,42 @@ def max_length(data):
             file_max_len = file
     return file_max_len,max_len
 
-file_max_length_, max_length_ = max_length(data_)
-
-TIMESTAMP_LENGTH = 10
-
-def interpolate_data(data_):
-    interpolated_data = deepcopy(data_)
-    for file in data_.keys():
-        if len(data_[file]) == max_length_:
-            interpolated_data_file.append(data_[file])
+def interpolate_data(data):
+    interpolated_data = deepcopy(data)
+    file_max_length, max_length = compute_max_length(data)
+    for file in data.keys():
+        if len(data[file]) == max_length:
+            interpolated_data_file.append(data[file])
         else:
-            timestamps = deepcopy([line[TIMESTAMP_S] + line[TIMESTAMP_NS]*0.1**(len(str(line[TIMESTAMP_NS]))) for line in data_[file]])
-            new_timestamps = deepcopy([line[TIMESTAMP_S] + line[TIMESTAMP_NS]*0.1**(len(str(line[TIMESTAMP_NS]))) for line in data_[file_max_length_]])
-            interpolated_data_file = [[line[TIMESTAMP_S] for line in data_[file_max_length_]], [line[TIMESTAMP_NS] for line in data_[file_max_length_]]]
+            timestamps = deepcopy([line[TIMESTAMP_S] + line[TIMESTAMP_NS]*0.1**(len(str(line[TIMESTAMP_NS]))) for line in data[file]])
+            new_timestamps = deepcopy([line[TIMESTAMP_S] + line[TIMESTAMP_NS]*0.1**(len(str(line[TIMESTAMP_NS]))) for line in data[file_max_length]])
+            interpolated_data_file = [[line[TIMESTAMP_S] for line in data[file_max_length]], [line[TIMESTAMP_NS] for line in data[file_max_length]]]
             for i in range(POS_X, LINEAR_ACC_Z + 1):
-                interp = np.interp(new_timestamps, timestamps, [line[i] for line in data_[file]])
+                interp = np.interp(new_timestamps, timestamps, [line[i] for line in data[file]])
                 interpolated_data_file.append(interp)
             interpolated_data[file] = np.array(interpolated_data_file).T
     return interpolated_data
 
-interpolated_data_ = interpolate_data(data_)
-
-def check_interpolation(data_):
+def check_interpolation(data):
     print("Checking interpolation ...")
+    file_max_length, max_length = compute_max_length(data)
     ok_counter = 0
-    for file in data_.keys():
-        if len(data_[file]) != max_length_ or len(data_[file][0]) != 11:
+    for file in data.keys():
+        if len(data[file]) != max_length or len(data[file][0]) != 11:
             print("ERROR")
-            print(file, len(data_[file]), "should be", max_length_)
-            print(file, len(data_[file][0]), "should be", 11)
+            print(file, len(data[file]), "should be", max_length)
+            print(file, len(data[file][0]), "should be", 11)
         else:
             ok_counter += 1
-        if ok_counter == len(data_.keys()):
+        if ok_counter == len(data.keys()):
             print("OK")
     return
 
-check_interpolation(interpolated_data_)
+if __name__ == "__main__":
+    data_ = read_data_files(DATA_DIRECTORY)
+    interpolated_data_ = interpolate_data(data_)
 
-plot_data(data_)
-plot_data(interpolated_data_)
+    check_interpolation(interpolated_data_)
+
+    plot_data(data_)
+    plot_data(interpolated_data_)

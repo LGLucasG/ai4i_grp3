@@ -59,7 +59,7 @@ def plot_data(data):
     return
 
 #Calculate the standar deviation of each column
-def standar_deviation(data, filename):
+def standard_deviation(data, filename):
     std = np.std(data[filename], axis=0)
     return std
 

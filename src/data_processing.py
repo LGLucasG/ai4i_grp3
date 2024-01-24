@@ -17,7 +17,7 @@ LIST_FILES = ['CERBERE_steering_controller-odom.csv','IMU7-data.csv','odom-hdl.c
 # enum the list of files
 CERBERE, IMU7, ODOM_HDL, ODOMETRY_EKF, ODOMETRY_FILTERED, ODOMETRY_GPS = list(LIST_FILES)
 # enum the args of the list of files
-TIMESTAMP_S, TIMESTAMP_NS, X_POS, Y_POS, Z_POS, X_ANGULAR_VELOCITY, Y_ANGULAR_VELOCITY, Z_ANGULAR_VELOCITY, X_LINEAR_ACC, Y_LINEAR_ACC, Z_LINEAR_ACC = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+TIMESTAMP_S, TIMESTAMP_NS, POS_X, POS_Y, POS_Z, ANGULAR_VELOCITY_X, ANGULAR_VELOCITY_Y, ANGULAR_VELOCITY_Z, LINEAR_ACC_X, LINEAR_ACC_Y, LINEAR_ACC_Z = 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10
 ####################################################################
 
 def read_data_files(data_dir):
@@ -48,9 +48,9 @@ def plot_data(data):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     for file in data.keys():
-        x = [line[X_POS] for line in data[file]]
-        y = [line[Y_POS] for line in data[file]]
-        z = [line[Z_POS] for line in data[file]]
+        x = [line[POS_X] for line in data[file]]
+        y = [line[POS_Y] for line in data[file]]
+        z = [line[POS_Z] for line in data[file]]
         ax.plot(x, y, z)
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
@@ -89,7 +89,7 @@ def interpolate_data(data_):
             timestamps = deepcopy([line[TIMESTAMP_S] + line[TIMESTAMP_NS]*0.1**(len(str(line[TIMESTAMP_NS]))) for line in data_[file]])
             new_timestamps = deepcopy([line[TIMESTAMP_S] + line[TIMESTAMP_NS]*0.1**(len(str(line[TIMESTAMP_NS]))) for line in data_[file_max_length_]])
             interpolated_data_file = [[line[TIMESTAMP_S] for line in data_[file_max_length_]], [line[TIMESTAMP_NS] for line in data_[file_max_length_]]]
-            for i in range(X_POS, Z_LINEAR_ACC + 1):
+            for i in range(POS_X, LINEAR_ACC_Z + 1):
                 interp = np.interp(new_timestamps, timestamps, [line[i] for line in data_[file]])
                 interpolated_data_file.append(interp)
             interpolated_data[file] = np.array(interpolated_data_file).T
@@ -113,4 +113,5 @@ def check_interpolation(data_):
 
 check_interpolation(interpolated_data_)
 
+plot_data(data_)
 plot_data(interpolated_data_)

@@ -12,7 +12,7 @@ from sklearn.model_selection import train_test_split
 
 #### MODIFY HERE ####
 # Choose the data directory
-DATA_DIRECTORY = "R6"  ## "R6" or "R11"
+DATA_DIRECTORY = "R11"  ## "R6" or "R11"
 ######################
 
 #### DO NOT MODIFY IF YOU ARE NOT SURE ABOUT WHAT YOU ARE DOING ####
@@ -147,13 +147,14 @@ def create_x_y(data):
         x[file] = np.delete(x[file], -1, axis=0)
     return x, y
 
-def replace_by_predictions(data, to_delete):
+def replace_by_predictions(data, training_data, to_delete):
     n_features = LINEAR_ACC_Z - POS_X + 1
     model = Sequential([
         LSTM(50, activation='relu', input_shape=(1, n_features)),
         Dense(n_features)
     ])
     model.compile(optimizer='adam', loss='mse')
+    x_train, y_train = create_x_y(training_data)
     x_, y_ = create_x_y(data)
     replaced_data = deepcopy(data)
     for file in data.keys():
@@ -162,9 +163,10 @@ def replace_by_predictions(data, to_delete):
             # print("len to_delete ", len(to_delete[file]))
             if to_delete[file][-1] >= len(x_[file]):
                 to_delete[file]=np.delete(to_delete[file], -1, axis=0)
+            x_train[file] = np.expand_dims(x_train[file], axis=1)
             x_[file] = np.expand_dims(x_[file], axis=1)
-            X_train, X_test, y_train, y_test = train_test_split(x_[file], y_[file], test_size=0.2, random_state=42)
-            model.fit(X_train, y_train, epochs=10, batch_size=32)
+            x_train_file, x_test_file, y_train_file, y_test_file = train_test_split(x_train[file], y_train[file], test_size=0.2, random_state=42)
+            model.fit(x_train_file, y_train_file, epochs=5, batch_size=32)
             # loss = model.evaluate(X_test, y_test)
             # print(f"Loss sur l'ensemble de test: {loss}")
             predictions = model.predict(x_[file][to_delete[file]])
@@ -191,10 +193,10 @@ if __name__ == "__main__":
     # plot_data(interpolated_data_)
     filtered_data_, to_delete_ = filter_data(interpolated_data_)
     # check_filtering(filtered_data_)
-    # plot_data(interpolated_data_)
     # plot_data(filtered_data_)
     test = interpolate_data(filtered_data_)
     # plot_data(test)
-    replaced_data_ = replace_by_predictions(interpolated_data_, to_delete_)
+    replaced_data_ = replace_by_predictions(interpolated_data_, filtered_data_, to_delete_)
     check_replaced_data_length(interpolated_data_, replaced_data_)
-    # plot_data(replaced_data_)
+    plot_data(interpolated_data_)
+    plot_data(replaced_data_)

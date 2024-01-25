@@ -158,8 +158,8 @@ def replace_by_predictions(data, to_delete):
     replaced_data = deepcopy(data)
     for file in data.keys():
         if to_delete[file] != []:
-            print("compare last ", to_delete[file][-1], len(x_[file]))
-            print("len to_delete ", len(to_delete[file]))
+            # print("compare last ", to_delete[file][-1], len(x_[file]))
+            # print("len to_delete ", len(to_delete[file]))
             if to_delete[file][-1] >= len(x_[file]):
                 to_delete[file]=np.delete(to_delete[file], -1, axis=0)
             x_[file] = np.expand_dims(x_[file], axis=1)
@@ -168,11 +168,20 @@ def replace_by_predictions(data, to_delete):
             # loss = model.evaluate(X_test, y_test)
             # print(f"Loss sur l'ensemble de test: {loss}")
             predictions = model.predict(x_[file][to_delete[file]])
-            print("len prediction", len(predictions))
-            print("len to_delete ", len(to_delete[file]))
+            # print("len prediction", len(predictions))
+            # print("len to_delete ", len(to_delete[file]))
             for i in range(len(to_delete[file])):
                 replaced_data[file][to_delete[file][i]][POS_X:LINEAR_ACC_Z+1] = predictions[i]
     return replaced_data
+
+def check_replaced_data_length(data, replaced_data):
+    print("Checking replaced data ...")
+    for file in data.keys():
+        if len(data[file]) != len(replaced_data[file]):
+            print("ERROR")
+            print(file, len(replaced_data[file]), "should be", len(data[file]))
+    print("OK")
+    return
 
 if __name__ == "__main__":
     data_ = read_data_files(DATA_DIRECTORY)
@@ -187,4 +196,5 @@ if __name__ == "__main__":
     test = interpolate_data(filtered_data_)
     # plot_data(test)
     replaced_data_ = replace_by_predictions(interpolated_data_, to_delete_)
+    check_replaced_data_length(interpolated_data_, replaced_data_)
     # plot_data(replaced_data_)

@@ -166,7 +166,7 @@ def replace_by_predictions(data, training_data, to_delete):
             x_train[file] = np.expand_dims(x_train[file], axis=1)
             x_[file] = np.expand_dims(x_[file], axis=1)
             x_train_file, x_test_file, y_train_file, y_test_file = train_test_split(x_train[file], y_train[file], test_size=0.2, random_state=42)
-            model.fit(x_train_file, y_train_file, epochs=5, batch_size=32)
+            model.fit(x_train_file, y_train_file, epochs=10, batch_size=32)
             # loss = model.evaluate(X_test, y_test)
             # print(f"Loss sur l'ensemble de test: {loss}")
             predictions = model.predict(x_[file][to_delete[file]])

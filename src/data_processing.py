@@ -5,11 +5,15 @@ import matplotlib.pyplot as plt
 import numpy as np
 from copy import deepcopy
 
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from sklearn.model_selection import train_test_split
+
 #### MODIFY HERE ####
 # Choose the data directory
 DATA_DIRECTORY = "R6"  ## "R6" or "R11"
 ######################
-
 
 #### DO NOT MODIFY IF YOU ARE NOT SURE ABOUT WHAT YOU ARE DOING ####
 # List of files
@@ -82,6 +86,7 @@ def interpolate_data(data):
     interpolated_data = deepcopy(data)
     file_max_length, max_length = compute_max_length(data)
     for file in data.keys():
+        interpolated_data_file = []
         if len(data[file]) == max_length:
             interpolated_data_file.append(data[file])
         else:
@@ -112,22 +117,62 @@ def check_interpolation(data):
 def filter_data(data):
     filtered_data = deepcopy(data)
     std_derivative, mean = {}, {}
+    to_delete ={}
     for file in data.keys():
-        to_delete =[]
+        to_delete[file] = []
         for i in range(ANGULAR_VELOCITY_X, LINEAR_ACC_Z + 1):
             mean[file], std_derivative[file] = mean_standard_deviation(data, file)
             for j in range(1, len(data[file])):
                 if (data[file][j][i] > (mean[file][i] + std_derivative[file][i])) or (data[file][j][i] < (mean[file][i] - std_derivative[file][i])):
-                    to_delete.append(j)
-        filtered_data[file] = np.delete(filtered_data[file], to_delete, 0)
-    return filtered_data
+                    to_delete[file].append(j)
+        # make values of to_delete unique and sort it
+        to_delete[file] = np.unique(to_delete[file]).tolist()
+        filtered_data[file] = np.delete(filtered_data[file], to_delete[file], 0)
+    return filtered_data, to_delete
 
 def check_filtering(data):
     print("Checking filtering ...")
-    for file in filtered_data_.keys():
+    for file in data.keys():
         print("filename :", file, "filelen :", len(filtered_data_[file]))
     print("OK")
     return
+
+def create_x_y(data):
+    x, y = {}, {}
+    for file in data.keys():
+        x[file] = np.delete(data[file], [TIMESTAMP_S, TIMESTAMP_NS], axis=1)
+    for file in data.keys():
+        y[file] = np.delete(x[file], 0, axis=0)
+    for file in data.keys():
+        x[file] = np.delete(x[file], -1, axis=0)
+    return x, y
+
+def replace_by_predictions(data, to_delete):
+    n_features = LINEAR_ACC_Z - POS_X + 1
+    model = Sequential([
+        LSTM(50, activation='relu', input_shape=(1, n_features)),
+        Dense(n_features)
+    ])
+    model.compile(optimizer='adam', loss='mse')
+    x_, y_ = create_x_y(data)
+    replaced_data = deepcopy(data)
+    for file in data.keys():
+        if to_delete[file] != []:
+            print("compare last ", to_delete[file][-1], len(x_[file]))
+            print("len to_delete ", len(to_delete[file]))
+            if to_delete[file][-1] >= len(x_[file]):
+                to_delete[file]=np.delete(to_delete[file], -1, axis=0)
+            x_[file] = np.expand_dims(x_[file], axis=1)
+            X_train, X_test, y_train, y_test = train_test_split(x_[file], y_[file], test_size=0.2, random_state=42)
+            model.fit(X_train, y_train, epochs=10, batch_size=32)
+            # loss = model.evaluate(X_test, y_test)
+            # print(f"Loss sur l'ensemble de test: {loss}")
+            predictions = model.predict(x_[file][to_delete[file]])
+            print("len prediction", len(predictions))
+            print("len to_delete ", len(to_delete[file]))
+            for i in range(len(to_delete[file])):
+                replaced_data[file][to_delete[file][i]][POS_X:LINEAR_ACC_Z+1] = predictions[i]
+    return replaced_data
 
 if __name__ == "__main__":
     data_ = read_data_files(DATA_DIRECTORY)
@@ -135,8 +180,11 @@ if __name__ == "__main__":
     check_interpolation(interpolated_data_)
     # plot_data(data_)
     # plot_data(interpolated_data_)
-    filtered_data_ = filter_data(interpolated_data_)
-    for file in filtered_data_.keys():
-        print(file, len(filtered_data_[file]))
+    filtered_data_, to_delete_ = filter_data(interpolated_data_)
+    # check_filtering(filtered_data_)
     # plot_data(interpolated_data_)
-    plot_data(filtered_data_)
+    # plot_data(filtered_data_)
+    test = interpolate_data(filtered_data_)
+    # plot_data(test)
+    replaced_data_ = replace_by_predictions(interpolated_data_, to_delete_)
+    # plot_data(replaced_data_)
